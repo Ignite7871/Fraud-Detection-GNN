@@ -301,12 +301,14 @@ Fraud-Detection-GNN/
 │   ├── baselines.py
 │   ├── train.py
 │   ├── evaluation.py
-│   └── utils.py
+│   ├── utils.py
+│   └── ablation.py
 │
 ├── tests/
 │   ├── test_data.py
 │   ├── test_models.py
-│   └── test_training.py
+│   ├── test_training.py
+│   └── test_ablation.py
 │
 ├── .github/
 │   └── workflows/
@@ -434,8 +436,6 @@ Potential extensions include:
 * class-imbalance strategies beyond weighted loss
 * threshold tuning based on precision/recall trade-offs
 * repeated runs with multiple random seeds
-* feature ablation studies
-* neighborhood-feature analysis
 * calibration analysis
 * explainability for individual transaction predictions
 
