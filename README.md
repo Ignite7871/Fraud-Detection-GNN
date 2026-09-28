@@ -1,44 +1,286 @@
-📌 How to Execute the Project
-1️⃣ Download the Dataset
+# Fraud Detection with Graph Neural Networks
 
-This project uses the Elliptic Bitcoin Transaction Dataset.
-You can download it from Kaggle:
+A graph-based fraud detection experiment using the **Elliptic Bitcoin Transaction Dataset** to investigate whether transaction relationships provide useful information beyond transaction-level features.
 
-👉 Search: “Elliptic Bitcoin dataset Kaggle”
+The project compares a traditional **Logistic Regression baseline** against a two-layer **Graph Convolutional Network (GCN)** using transaction features and transaction-flow relationships.
 
-After downloading, extract the following CSV files:
-elliptic_txs_features.csv
-elliptic_txs_classes.csv
-elliptic_txs_edgelist.csv
+---
 
-Place them inside the project folder like:
-fraud-detection-gnn/
-└── data/
-    ├── elliptic_txs_features.csv
-    ├── elliptiptic_txs_classes.csv
-    └── elliptic_txs_edgelist.csv
+## 🔍 Problem
 
-pip install -r requirements.txt
+Cryptocurrency transactions can be represented as a graph:
 
-Run the Notebook
+```text
+Transaction ───→ Transaction
+     │                 │
+     └──── money flow ─┘
+```
 
-What the Code Does
-✔ Loads the Elliptic dataset (Bitcoin transactions)
-✔ Builds a graph where:
-Nodes = transactions
-Edges = money flow between transactions
-✔ Trains a Logistic Regression baseline
-✔ Builds and trains a Graph Convolutional Network (GCN)
-✔ Evaluates with:
-Accuracy
-F1-score
-ROC-AUC score
+A transaction can therefore be described using both:
+
+1. its own feature vector
+2. its relationships with other transactions
+
+This project investigates whether graph-based message passing can exploit that relational structure for illicit-transaction detection.
+
+---
+
+## 🧠 Approach
+
+### Baseline
+
+A Logistic Regression classifier is trained using the transaction-level feature vectors.
+
+### Graph Neural Network
+
+A two-layer Graph Convolutional Network is constructed using:
+
+* transaction features as node attributes
+* transaction relationships as graph edges
+* weighted cross-entropy to address class imbalance
+
+The GCN architecture is:
+
+```text
+Node Features
+      ↓
+   GCNConv
+      ↓
+    ReLU
+      ↓
+   Dropout
+      ↓
+   GCNConv
+      ↓
+ Class Prediction
+```
+
+---
+
+## 📊 Experimental Setup
+
+### Dataset
+
+The project uses the **Elliptic Bitcoin Transaction Dataset**.
+
+The dataset is processed into:
+
+```text
+Nodes  → Bitcoin transactions
+Edges  → Transaction relationships
+Labels → Licit / Illicit / Unknown
+```
+
+Unknown labels are excluded from supervised evaluation.
+
+### Data split
+
+Labeled transactions are divided into:
+
+* 64% training
+* 16% validation
+* 20% test
+
+using stratified random splitting with `random_state=42`.
+
+---
+
+## 📈 Results
+
+### Test Set
+
+| Model               |   Accuracy |   F1 Score |    ROC-AUC |
+| ------------------- | ---------: | ---------: | ---------: |
+| Logistic Regression | **0.9620** | **0.7942** | **0.9679** |
+| GCN                 |     0.8860 |     0.6011 |     0.9554 |
+
+### Interpretation
+
+On the current experimental split, the Logistic Regression baseline performs better than the GCN across the reported test metrics.
+
+This means the current implementation does **not** establish that graph convolution improves fraud detection performance.
+
+Instead, the experiment demonstrates an important baseline comparison: strong transaction-level features can provide substantial predictive performance, while the current GCN configuration does not yet outperform that baseline.
+
+---
+
+## 🛡️ Class-Imbalance Analysis
+
+The test-set confusion matrix for the GCN is:
+
+```text
+                 Predicted
+               Licit  Illicit
+Actual Licit    7451     953
+Actual Illicit   109     800
+```
+
+The resulting GCN metrics are:
+
+```text
+Illicit precision: 0.4564
+Illicit recall:    0.8801
+Illicit F1:        0.6011
+```
+
+The model therefore identifies a large proportion of illicit transactions, but at the cost of a relatively high false-positive rate.
+
+This trade-off is especially important in fraud detection, where missed illicit activity and unnecessary investigation alerts have different operational costs.
+
+---
+
+## 🔬 Graph Analysis
+
+The notebook also measures the proportion of fraudulent neighbors connected to test transactions.
+
+Current experiment:
+
+```text
+Average fraudulent-neighbor ratio: 0.0323
+```
+
+This provides a simple view of how illicit transactions are distributed within the transaction graph.
+
+---
+
+## 🧪 Evaluation Metrics
+
+The project reports:
+
+* Accuracy
+* F1 Score
+* ROC-AUC
+* Confusion Matrix
+* Precision
+* Recall
+
+ROC-AUC is included because class imbalance makes raw accuracy alone insufficient for evaluating a fraud-detection classifier.
+
+---
+
+## 🏗️ Project Structure
+
+```text
+Fraud-Detection-GNN/
+│
+├── frauddetection.ipynb
+├── requirements.txt
+└── README.md
+```
+
+The notebook contains the complete experimental pipeline:
+
+```text
+Dataset Loading
+      ↓
+Feature Preparation
+      ↓
+Graph Construction
+      ↓
+Train / Validation / Test Split
+      ↓
+Logistic Regression Baseline
+      ↓
+GCN Training
+      ↓
+Evaluation
+      ↓
 Confusion Matrix
-✔ Shows how graph learning helps identify fraud more accurately
+      ↓
+Graph Analysis
+```
 
+---
 
-You should see results like:
-Accuracy: 0.9459
-F1 Score: 0.6515
-ROC-AUC: 0.9448
+## ⚙️ Technologies
 
+![Python](https://img.shields.io/badge/Python-3776AB?logo=python\&logoColor=white)
+![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?logo=pytorch\&logoColor=white)
+![PyTorch Geometric](https://img.shields.io/badge/PyTorch%20Geometric-3C2179?logo=pytorch\&logoColor=white)
+![Pandas](https://img.shields.io/badge/Pandas-150458?logo=pandas\&logoColor=white)
+![Scikit Learn](https://img.shields.io/badge/Scikit--Learn-F7931E?logo=scikit-learn\&logoColor=white)
+![NumPy](https://img.shields.io/badge/NumPy-013243?logo=numpy\&logoColor=white)
+
+---
+
+## 🚀 Getting Started
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/Ignite7871/Fraud-Detection-GNN.git
+cd Fraud-Detection-GNN
+```
+
+### 2. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Download the dataset
+
+Download the Elliptic Bitcoin Transaction Dataset and place the required files in:
+
+```text
+data/
+├── elliptic_txs_features.csv
+├── elliptic_txs_classes.csv
+└── elliptic_txs_edgelist.csv
+```
+
+### 4. Run the notebook
+
+```bash
+jupyter notebook frauddetection.ipynb
+```
+
+---
+
+## ⚠️ Limitations
+
+This repository is an experimental research project rather than a production fraud-detection system.
+
+Current limitations include:
+
+* random rather than temporal evaluation
+* a relatively simple two-layer GCN
+* heuristic graph construction from the available edge list
+* no systematic hyperparameter search
+* no threshold optimisation for operational fraud-detection costs
+* no comparison with more advanced graph models
+* no repeated-seed statistical analysis
+
+The current results should therefore be interpreted as a baseline experiment rather than evidence of production-level fraud detection performance.
+
+---
+
+## 🔭 Future Work
+
+Potential extensions include:
+
+* temporal train/validation/test splits
+* GraphSAGE and GAT comparisons
+* class-imbalance strategies beyond weighted loss
+* threshold tuning based on precision/recall trade-offs
+* repeated runs with multiple random seeds
+* feature ablation studies
+* neighborhood-feature analysis
+* calibration analysis
+* explainability for individual transaction predictions
+
+---
+
+## 👤 Author
+
+**Srikar Reddy Gunupati**
+
+B.Tech — Computer Science & Engineering (AI & ML)
+
+Research interests:
+
+**Machine Learning • Graph Neural Networks • AI Security • Fraud Detection • Intelligent Systems**
+
+[GitHub](https://github.com/Ignite7871)
+
+[LinkedIn](https://linkedin.com/in/srikar-reddy-gunupati)
