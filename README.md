@@ -215,7 +215,7 @@ Actual Illicit    95      541
 
 Both models degrade substantially under chronological evaluation. ROC-AUC drops by roughly 0.14–0.15 points for each model, and F1 drops much more sharply (Logistic Regression: 0.7946 → 0.2303; GCN: 0.5900 → 0.1997), driven mainly by a large increase in false positives on illicit transactions in the later time steps.
 
-Logistic Regression still has a higher ROC-AUC than the GCN under the temporal protocol, so the random-split conclusion — that this GCN configuration does not outperform the transaction-level baseline — is not overturned by moving to a stricter, leakage-aware chronological split. Both models' absolute performance is markedly weaker than the random-split numbers suggest, which is itself a useful finding: it indicates the random split was likely optimistic relative to how these models would generalize to later, unseen time periods.
+Logistic Regression still has a higher ROC-AUC than the GCN under the temporal protocol, so the random-split conclusion — that this GCN configuration does not outperform the transaction-level baseline — is not overturned by moving to a stricter chronological split. Both models' absolute performance is markedly weaker than the random-split numbers suggest, which is itself a useful finding: it indicates the random split was likely optimistic relative to how these models would generalize to later, unseen time periods.
 
 ---
 
@@ -249,10 +249,12 @@ All four configurations are evaluated using the same train/validation/test parti
 
 | Configuration                     |   Accuracy |         F1 |    ROC-AUC |
 | ---------------------------------- | ---------: | ---------: | ---------: |
-| Features only                      |     0.7101 |     0.2303 | **0.8308** |
+| Features only                      |     0.7101 |     0.2303 |     0.8308 |
 | Graph only                         |     0.7729 |     0.0790 |     0.5750 |
 | Features + GCN                     |     0.6124 |     0.1997 |     0.8111 |
-| Features + neighborhood features   | **0.9176** | **0.3150** |     0.8279 |
+| Features + neighborhood features   | **0.8131** | **0.2881** | **0.8323** |
+
+Each split's neighborhood features are computed from that split's own chronological graph snapshot (training-cutoff features for training rows, validation-cutoff for validation rows, test-cutoff for test rows), rather than reusing the training-cutoff snapshot for every row.
 
 ### Random vs. temporal ablation summary
 
@@ -261,13 +263,13 @@ All four configurations are evaluated using the same train/validation/test parti
 | Features only                      |          0.9680 |              0.8308 |     0.7946 |        0.2303 |
 | Graph only                         |          0.5938 |              0.5750 |     0.0768 |        0.0790 |
 | Features + GCN                     |          0.9525 |              0.8111 |     0.5900 |        0.1997 |
-| Features + neighborhood features   |          0.9758 |              0.8279 |     0.8283 |        0.3150 |
+| Features + neighborhood features   |          0.9758 |              0.8323 |     0.8283 |        0.2881 |
 
 ### Interpretation
 
 Graph topology alone carries almost no predictive signal for this task: the graph-only GCN (constant node features, so predictions can only come from connectivity and message passing) performs close to chance in both protocols (ROC-AUC 0.59 random-split, 0.58 temporal-split). Removing the graph entirely and keeping only transaction features (Logistic Regression) reaches 0.97 / 0.83 ROC-AUC — dramatically higher.
 
-Augmenting the transaction features with a simple one-hop mean-neighbor feature and feeding them to Logistic Regression — no message passing, no learned graph model — matches or exceeds the GCN's performance in both the random split (ROC-AUC 0.976 vs 0.953, F1 0.828 vs 0.590) and the temporal split (ROC-AUC 0.828 vs 0.811, F1 0.315 vs 0.200).
+Augmenting the transaction features with a simple one-hop mean-neighbor feature and feeding them to Logistic Regression — no message passing, no learned graph model — matches or exceeds the GCN's performance in both the random split (ROC-AUC 0.976 vs 0.953, F1 0.828 vs 0.590) and the temporal split (ROC-AUC 0.832 vs 0.811, F1 0.288 vs 0.200). Under the temporal protocol, this neighborhood-augmented Logistic Regression is in fact the strongest of all four configurations on ROC-AUC, narrowly ahead of the features-only baseline (0.8323 vs 0.8308).
 
 Taken together, this ablation indicates that in this configuration, almost all of the GCN's discriminative power comes from the transaction-level node features it has access to rather than from its message-passing mechanism, and that a much simpler explicit neighborhood-averaging feature captures at least as much of the locally available relational signal as the learned GCN does. This does not rule out that a different or better-tuned GNN architecture could do better — that question is left for future work — but the current results do not establish an advantage for graph-based message passing over the transaction-level and simple-neighborhood-aggregate baselines on this dataset.
 
