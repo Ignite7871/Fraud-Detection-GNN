@@ -1,5 +1,7 @@
 # Fraud Detection with Graph Neural Networks
 
+[![Tests](https://github.com/Ignite7871/Fraud-Detection-GNN/actions/workflows/tests.yml/badge.svg)](https://github.com/Ignite7871/Fraud-Detection-GNN/actions/workflows/tests.yml)
+
 A graph-based fraud detection experiment using the **Elliptic Bitcoin Transaction Dataset** to investigate whether transaction relationships provide useful information beyond transaction-level features.
 
 The project compares a traditional **Logistic Regression baseline** against a two-layer **Graph Convolutional Network (GCN)** using transaction features and transaction-flow relationships.
@@ -164,31 +166,47 @@ ROC-AUC is included because class imbalance makes raw accuracy alone insufficien
 ```text
 Fraud-Detection-GNN/
 │
+├── src/
+│   ├── data.py
+│   ├── models.py
+│   ├── baselines.py
+│   ├── train.py
+│   ├── evaluation.py
+│   └── utils.py
+│
+├── tests/
+│   ├── test_data.py
+│   ├── test_models.py
+│   └── test_training.py
+│
+├── .github/
+│   └── workflows/
+│       └── tests.yml
+│
 ├── frauddetection.ipynb
 ├── requirements.txt
-└── README.md
+├── README.md
+└── .gitignore
 ```
 
-The notebook contains the complete experimental pipeline:
+Dataset loading, feature preparation, graph construction, the train/validation/test split, the GCN model, training loop, and evaluation all live in `src/` as reusable, tested functions. The notebook is the experiment/demo layer that calls into them:
 
 ```text
-Dataset Loading
-      ↓
-Feature Preparation
-      ↓
-Graph Construction
-      ↓
-Train / Validation / Test Split
-      ↓
-Logistic Regression Baseline
-      ↓
-GCN Training
-      ↓
-Evaluation
-      ↓
-Confusion Matrix
-      ↓
-Graph Analysis
+Environment
+    ↓
+Imports + Seed
+    ↓
+Prepare Dataset
+    ↓
+Run Baseline
+    ↓
+Train GCN
+    ↓
+Evaluate
+    ↓
+Analyze
+    ↓
+Visualize
 ```
 
 ---
@@ -213,13 +231,22 @@ git clone https://github.com/Ignite7871/Fraud-Detection-GNN.git
 cd Fraud-Detection-GNN
 ```
 
-### 2. Install dependencies
+### 2. Create a Python 3.12 environment and install dependencies
 
 ```bash
+py -3.12 -m venv .venv
+.venv\Scripts\activate
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 3. Download the dataset
+### 3. Register the Jupyter kernel
+
+```bash
+python -m ipykernel install --user --name fraud-gnn --display-name "Fraud GNN (Python 3.12)"
+```
+
+### 4. Download the dataset
 
 Download the Elliptic Bitcoin Transaction Dataset and place the required files in:
 
@@ -230,10 +257,22 @@ data/
 └── elliptic_txs_edgelist.csv
 ```
 
-### 4. Run the notebook
+### 5. Run the notebook
 
 ```bash
 jupyter notebook frauddetection.ipynb
+```
+
+Select the **Fraud GNN (Python 3.12)** kernel before running.
+
+---
+
+## 🧪 Testing
+
+`src/` has a `tests/` suite covering data preparation, the GCN model, and the training loop, independent of the 660 MB dataset. CI runs this suite on every push and pull request via GitHub Actions.
+
+```bash
+pytest -q
 ```
 
 ---
