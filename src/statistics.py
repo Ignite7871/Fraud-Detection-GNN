@@ -21,6 +21,16 @@ def bootstrap_mean_ci(
     if differences.size == 0:
         raise ValueError("differences cannot be empty.")
 
+    if not 0 < confidence < 1:
+        raise ValueError(
+            "confidence must be between 0 and 1."
+        )
+
+    if n_resamples < 1:
+        raise ValueError(
+            "n_resamples must be positive."
+        )
+
     rng = np.random.default_rng(seed)
 
     samples = rng.choice(
@@ -51,11 +61,11 @@ def exact_sign_flip_pvalue(
     differences,
 ):
     """
-    Exact two-sided paired permutation test.
+    Exact two-sided paired sign-flip permutation test.
 
     Under the null, each paired difference may independently
-    have either sign. For n <= 20 this enumerates every
-    possible sign assignment.
+    have either sign. Every possible sign assignment is
+    enumerated for n <= 20.
     """
 
     differences = np.asarray(
@@ -69,6 +79,12 @@ def exact_sign_flip_pvalue(
 
     if differences.size == 0:
         return 1.0
+
+    if differences.size > 20:
+        raise ValueError(
+            "Exact sign-flip enumeration supports at most 20 "
+            "nonzero paired differences."
+        )
 
     observed = abs(
         differences.mean()
