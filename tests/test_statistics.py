@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from src.statistics import (
     bootstrap_mean_ci,
@@ -24,6 +25,28 @@ def test_bootstrap_mean_ci():
     assert low <= 2.0 <= high
 
 
+def test_bootstrap_input_validation():
+    differences = np.array([1.0, 2.0])
+
+    with pytest.raises(ValueError):
+        bootstrap_mean_ci(
+            differences,
+            confidence=0.0,
+        )
+
+    with pytest.raises(ValueError):
+        bootstrap_mean_ci(
+            differences,
+            confidence=1.0,
+        )
+
+    with pytest.raises(ValueError):
+        bootstrap_mean_ci(
+            differences,
+            n_resamples=0,
+        )
+
+
 def test_exact_sign_flip_pvalue():
     differences = np.array(
         [1.0, 1.0, 1.0, 1.0]
@@ -33,7 +56,16 @@ def test_exact_sign_flip_pvalue():
         differences
     )
 
-    assert 0.0 < p_value <= 1.0
+    assert p_value == 0.125
+
+
+def test_exact_sign_flip_size_guard():
+    differences = np.ones(21)
+
+    with pytest.raises(ValueError):
+        exact_sign_flip_pvalue(
+            differences
+        )
 
 
 def test_paired_effect_size():
@@ -87,4 +119,8 @@ def test_holm_correction():
     assert len(corrected) == 3
     assert np.all(
         corrected >= p_values
+    )
+    np.testing.assert_allclose(
+        corrected,
+        np.array([0.03, 0.08, 0.20]),
     )
