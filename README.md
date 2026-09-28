@@ -275,6 +275,36 @@ Taken together, this ablation indicates that in this configuration, almost all o
 
 ---
 
+## 📐 Multi-Seed Statistical Validation
+
+The ablation conclusions are also evaluated across 10 seed-matched runs using the same experimental protocols and configurations. The random protocol uses the predefined seeds to regenerate its stratified splits; the temporal protocol keeps the chronological partitions fixed and varies GCN initialization/dropout while the Logistic Regression baselines remain deterministic.
+
+The primary statistical metric is ROC-AUC, with F1 reported as a secondary metric. For each paired comparison, the analysis reports the mean paired difference, a percentile-bootstrap 95% confidence interval, an exact two-sided sign-flip permutation p-value, Cohen's paired effect size ($d_z$), and the fraction of seeds with a positive difference. Eight comparisons are corrected together using Holm-Bonferroni adjustment.
+
+### ROC-AUC paired results
+
+| Protocol | Comparison | Mean Δ | 95% CI | $d_z$ | Holm-adjusted p | Direction |
+| --- | --- | ---: | --- | ---: | ---: | --- |
+| Random | GCN − Features only | -0.0138 | [-0.0157, -0.0117] | -4.103 | 0.0156 | 0/10 positive |
+| Random | Neighborhood − GCN | +0.0211 | [+0.0190, +0.0231] | +6.117 | 0.0156 | 10/10 positive |
+| Temporal | GCN − Features only | -0.0329 | [-0.0390, -0.0261] | -2.956 | 0.0156 | 0/10 positive |
+| Temporal | Neighborhood − GCN | +0.0343 | [+0.0276, +0.0405] | +3.087 | 0.0156 | 10/10 positive |
+
+### F1 paired results
+
+| Protocol | Comparison | Mean Δ | 95% CI | $d_z$ | Holm-adjusted p | Direction |
+| --- | --- | ---: | --- | ---: | ---: | --- |
+| Random | GCN − Features only | -0.2158 | [-0.2276, -0.2068] | -11.731 | 0.0156 | 0/10 positive |
+| Random | Neighborhood − GCN | +0.2393 | [+0.2308, +0.2510] | +13.275 | 0.0156 | 10/10 positive |
+| Temporal | GCN − Features only | -0.0375 | [-0.0455, -0.0291] | -2.680 | 0.0156 | 0/10 positive |
+| Temporal | Neighborhood − GCN | +0.0953 | [+0.0869, +0.1034] | +6.820 | 0.0156 | 10/10 positive |
+
+These results show that the observed direction of the ablation differences is stable across all 10 seed-matched runs in both protocols. The analysis is intended as a robustness check over stochastic runs, not as evidence from 10 independent datasets or 10 independent real-world samples. In the temporal protocol, the Logistic Regression comparisons are against a fixed chronological baseline because that model is deterministic under the fixed split.
+
+The exact sign-flip test enumerates all sign assignments for the 10 paired differences. Because the sample contains only 10 runs, the resulting p-values should be interpreted together with the confidence intervals, effect sizes, and per-seed direction counts rather than in isolation.
+
+---
+
 ## 🧪 Evaluation Metrics
 
 The project reports:
@@ -302,7 +332,9 @@ Fraud-Detection-GNN/
 │   ├── train.py
 │   ├── evaluation.py
 │   ├── utils.py
-│   └── ablation.py
+│   ├── ablation.py
+│   ├── robustness.py
+│   └── statistics.py
 │
 ├── tests/
 │   ├── test_data.py
@@ -422,7 +454,7 @@ Current limitations include:
 * no systematic hyperparameter search
 * no threshold optimisation for operational fraud-detection costs
 * no comparison with more advanced graph models
-* no repeated-seed statistical analysis
+* only 10 seed-matched runs are used for the statistical robustness analysis, so uncertainty estimates should be interpreted as small-sample evidence
 
 The current results should therefore be interpreted as a baseline experiment rather than evidence of production-level fraud detection performance.
 
@@ -435,7 +467,7 @@ Potential extensions include:
 * GraphSAGE and GAT comparisons
 * class-imbalance strategies beyond weighted loss
 * threshold tuning based on precision/recall trade-offs
-* repeated runs with multiple random seeds
+* additional independent datasets or repeated benchmark splits to assess cross-dataset generalisation
 * calibration analysis
 * explainability for individual transaction predictions
 
