@@ -46,6 +46,59 @@ def build_training_components(
     return model, criterion, optimizer
 
 
+def build_model_components(
+    data,
+    model_class,
+    hidden_channels: int = 64,
+    dropout: float = 0.5,
+    learning_rate: float = 0.001,
+    weight_decay: float = 5e-4,
+    **model_kwargs,
+):
+    """
+    Build a GNN model of the given class, weighted loss, and optimizer.
+
+    Generalizes build_training_components() to any model class that
+    implements the same forward(x, edge_index) interface as GCN (e.g.
+    GraphSAGE, GAT), so alternative architectures reuse the identical
+    weighted-loss/optimizer setup and the train_gcn() training loop
+    without duplicating this logic. build_training_components() itself
+    is left unchanged for the existing GCN experiments.
+    """
+
+    train_labels = data.y[data.train_mask]
+
+    class_counts = torch.bincount(
+        train_labels,
+        minlength=2,
+    )
+
+    class_weights = (
+        train_labels.size(0)
+        / (2.0 * class_counts)
+    ).float().to(data.x.device)
+
+    model = model_class(
+        in_channels=data.x.size(1),
+        hidden_channels=hidden_channels,
+        out_channels=2,
+        dropout=dropout,
+        **model_kwargs,
+    ).to(data.x.device)
+
+    criterion = nn.CrossEntropyLoss(
+        weight=class_weights,
+    )
+
+    optimizer = torch.optim.Adam(
+        model.parameters(),
+        lr=learning_rate,
+        weight_decay=weight_decay,
+    )
+
+    return model, criterion, optimizer
+
+
 def train_gcn(
     model,
     data,

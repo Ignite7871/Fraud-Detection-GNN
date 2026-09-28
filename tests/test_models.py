@@ -1,11 +1,10 @@
 import torch
 from torch_geometric.data import Data
 
-from src.models import GCN
+from src.models import GAT, GCN, GraphSAGE
 
 
-def test_gcn_forward_shape():
-
+def _make_test_graph():
     x = torch.randn(6, 10)
 
     edge_index = torch.tensor(
@@ -16,15 +15,56 @@ def test_gcn_forward_shape():
         dtype=torch.long,
     )
 
+    return Data(
+        x=x,
+        edge_index=edge_index,
+    )
+
+
+def test_gcn_forward_shape():
+
+    data = _make_test_graph()
+
     model = GCN(
         in_channels=10,
         hidden_channels=8,
         out_channels=2,
     )
 
-    data = Data(
-        x=x,
-        edge_index=edge_index,
+    output = model(
+        data.x,
+        data.edge_index,
+    )
+
+    assert output.shape == (6, 2)
+
+
+def test_graphsage_forward_shape():
+
+    data = _make_test_graph()
+
+    model = GraphSAGE(
+        in_channels=10,
+        hidden_channels=8,
+        out_channels=2,
+    )
+
+    output = model(
+        data.x,
+        data.edge_index,
+    )
+
+    assert output.shape == (6, 2)
+
+
+def test_gat_forward_shape():
+
+    data = _make_test_graph()
+
+    model = GAT(
+        in_channels=10,
+        hidden_channels=8,
+        out_channels=2,
     )
 
     output = model(
