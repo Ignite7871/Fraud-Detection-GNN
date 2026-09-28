@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual env
+venv/
+.venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Dataset (download via Kaggle, see README)
+data/
+
+# OS files
+.DS_Store
+Thumbs.db
