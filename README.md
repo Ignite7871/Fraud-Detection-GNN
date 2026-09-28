@@ -146,6 +146,79 @@ This provides a simple view of how illicit transactions are distributed within t
 
 ---
 
+## ⏱️ Temporal Evaluation
+
+In addition to the random stratified split, the project evaluates the models using chronological transaction time steps.
+
+The temporal experiment uses:
+
+```text
+Earlier time steps
+        ↓
+     Training
+
+Middle time steps
+        ↓
+    Validation
+
+Later time steps
+        ↓
+      Test
+```
+
+The split is performed at the time-step level so that a single time step cannot appear in multiple partitions.
+
+For the GCN, the training graph is restricted to transactions occurring at or before the training cutoff. Validation and test evaluation use graph views restricted to their respective chronological cutoffs, preventing later-period graph edges from being used during earlier evaluation.
+
+The Logistic Regression baseline uses the same chronological node partitions without graph information.
+
+The notebook reports both random-split and temporal-split results so the effect of chronological evaluation can be examined directly.
+
+### Evaluation note
+
+The temporal experiment should be interpreted as a chronological holdout protocol rather than a complete simulation of production real-time fraud scoring. It evaluates generalization to later time periods while retaining the benchmark's available transaction features.
+
+### Temporal split
+
+Using a 60/20/20 chronological split over the labeled time steps:
+
+| Partition  | Time steps | Nodes |
+| ---------- | ---------: | ----: |
+| Train      |       1–29 | 26381 |
+| Validation |      30–39 |  8999 |
+| Test       |      40–49 | 11184 |
+
+### Results (temporal test set)
+
+| Model               |   Accuracy |         F1 |    ROC-AUC |
+| ------------------- | ---------: | ---------: | ---------: |
+| Logistic Regression | **0.7101** | **0.2303** | **0.8308** |
+| GCN                 |     0.6124 |     0.1997 |     0.8111 |
+
+The test-set confusion matrix for the temporal GCN is:
+
+```text
+                 Predicted
+               Licit  Illicit
+Actual Licit    6308     4240
+Actual Illicit    95      541
+```
+
+### Random vs. temporal comparison
+
+| Model               | Random ROC-AUC | Temporal ROC-AUC | Random F1 | Temporal F1 |
+| -------------------- | --------------: | -----------------: | ---------: | ------------: |
+| Logistic Regression  |          0.9680 |              0.8308 |     0.7946 |        0.2303 |
+| GCN                  |          0.9525 |              0.8111 |     0.5900 |        0.1997 |
+
+### Interpretation
+
+Both models degrade substantially under chronological evaluation. ROC-AUC drops by roughly 0.14–0.15 points for each model, and F1 drops much more sharply (Logistic Regression: 0.7946 → 0.2303; GCN: 0.5900 → 0.1997), driven mainly by a large increase in false positives on illicit transactions in the later time steps.
+
+Logistic Regression still has a higher ROC-AUC than the GCN under the temporal protocol, so the random-split conclusion — that this GCN configuration does not outperform the transaction-level baseline — is not overturned by moving to a stricter, leakage-aware chronological split. Both models' absolute performance is markedly weaker than the random-split numbers suggest, which is itself a useful finding: it indicates the random split was likely optimistic relative to how these models would generalize to later, unseen time periods.
+
+---
+
 ## 🧪 Evaluation Metrics
 
 The project reports:
@@ -283,7 +356,8 @@ This repository is an experimental research project rather than a production fra
 
 Current limitations include:
 
-* random rather than temporal evaluation
+* temporal evaluation is performed at the dataset time-step level rather than exact transaction timestamps
+* benchmark features may contain aggregated neighborhood information, so this is not a full point-in-time production simulation
 * a relatively simple two-layer GCN
 * heuristic graph construction from the available edge list
 * no systematic hyperparameter search
@@ -299,7 +373,6 @@ The current results should therefore be interpreted as a baseline experiment rat
 
 Potential extensions include:
 
-* temporal train/validation/test splits
 * GraphSAGE and GAT comparisons
 * class-imbalance strategies beyond weighted loss
 * threshold tuning based on precision/recall trade-offs

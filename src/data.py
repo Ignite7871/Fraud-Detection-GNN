@@ -233,3 +233,175 @@ def prepare_dataset(
         test_idx,
         time_steps,
     )
+
+
+def create_temporal_splits(
+    y_full: np.ndarray,
+    time_steps: np.ndarray,
+    train_ratio: float = 0.6,
+    val_ratio: float = 0.2,
+):
+    """
+    Create chronological train/validation/test splits using time steps.
+
+    The split is performed at the time-step level so that a single
+    time step cannot appear in multiple partitions.
+
+    Returns:
+        train_idx
+        val_idx
+        test_idx
+        time_ranges: dictionary containing chronological boundaries.
+    """
+    if not 0 < train_ratio < 1:
+        raise ValueError("train_ratio must be between 0 and 1.")
+
+    if not 0 < val_ratio < 1:
+        raise ValueError("val_ratio must be between 0 and 1.")
+
+    if train_ratio + val_ratio >= 1:
+        raise ValueError(
+            "train_ratio + val_ratio must be less than 1."
+        )
+
+    y_full = np.asarray(y_full)
+    time_steps = np.asarray(time_steps)
+
+    labeled_indices = np.where(y_full != -1)[0]
+
+    if len(labeled_indices) == 0:
+        raise ValueError("No labeled transactions were found.")
+
+    labeled_times = time_steps[labeled_indices]
+
+    unique_times = np.sort(
+        np.unique(labeled_times)
+    )
+
+    if len(unique_times) < 3:
+        raise ValueError(
+            "At least three unique time steps are required."
+        )
+
+    train_end = int(
+        np.floor(
+            len(unique_times) * train_ratio
+        )
+    )
+
+    val_end = int(
+        np.floor(
+            len(unique_times)
+            * (train_ratio + val_ratio)
+        )
+    )
+
+    # Guarantee at least one time step in every partition.
+    train_end = max(1, train_end)
+
+    val_end = max(
+        train_end + 1,
+        val_end,
+    )
+
+    val_end = min(
+        val_end,
+        len(unique_times) - 1,
+    )
+
+    train_times = unique_times[:train_end]
+    val_times = unique_times[train_end:val_end]
+    test_times = unique_times[val_end:]
+
+    train_idx = labeled_indices[
+        np.isin(
+            labeled_times,
+            train_times,
+        )
+    ]
+
+    val_idx = labeled_indices[
+        np.isin(
+            labeled_times,
+            val_times,
+        )
+    ]
+
+    test_idx = labeled_indices[
+        np.isin(
+            labeled_times,
+            test_times,
+        )
+    ]
+
+    time_ranges = {
+        "train_start": train_times[0],
+        "train_end": train_times[-1],
+        "val_start": val_times[0],
+        "val_end": val_times[-1],
+        "test_start": test_times[0],
+        "test_end": test_times[-1],
+    }
+
+    return (
+        train_idx,
+        val_idx,
+        test_idx,
+        time_ranges,
+    )
+
+
+def restrict_graph_to_time(
+    data: Data,
+    time_steps: np.ndarray,
+    max_time_step,
+):
+    """
+    Create a graph view containing only edges whose endpoints occur
+    at or before max_time_step.
+
+    Node features remain available for evaluation, while future
+    transaction relationships cannot influence the graph computation.
+    """
+    time_steps = np.asarray(time_steps)
+
+    node_times = torch.as_tensor(
+        time_steps,
+        device=data.edge_index.device,
+    )
+
+    src_times = node_times[
+        data.edge_index[0]
+    ]
+
+    dst_times = node_times[
+        data.edge_index[1]
+    ]
+
+    keep_edges = (
+        (src_times <= max_time_step)
+        & (dst_times <= max_time_step)
+    )
+
+    temporal_data = Data(
+        x=data.x,
+        edge_index=data.edge_index[:, keep_edges],
+        y=data.y,
+    )
+
+    if hasattr(data, "train_mask"):
+        temporal_data.train_mask = (
+            data.train_mask.clone()
+        )
+
+    if hasattr(data, "val_mask"):
+        temporal_data.val_mask = (
+            data.val_mask.clone()
+        )
+
+    if hasattr(data, "test_mask"):
+        temporal_data.test_mask = (
+            data.test_mask.clone()
+        )
+
+    return temporal_data

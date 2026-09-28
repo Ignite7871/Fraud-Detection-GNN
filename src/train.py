@@ -52,10 +52,26 @@ def train_gcn(
     criterion,
     optimizer,
     epochs: int = 100,
+    eval_data=None,
+    eval_split: str = "val",
 ):
-    """Train the GCN and record validation metrics."""
+    """
+    Train the GCN and record validation metrics.
 
+    By default, evaluation uses the training graph object itself,
+    preserving the original experiment behavior.
+
+    A separate eval_data graph can be supplied for temporal
+    evaluation so that training and evaluation use different
+    graph snapshots.
+    """
     val_history = []
+
+    evaluation_data = (
+        data
+        if eval_data is None
+        else eval_data
+    )
 
     for epoch in range(1, epochs + 1):
 
@@ -80,8 +96,8 @@ def train_gcn(
 
             val_acc, val_f1, val_auc = evaluate(
                 model,
-                data,
-                "val",
+                evaluation_data,
+                eval_split,
             )
 
             val_history.append(
