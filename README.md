@@ -219,6 +219,60 @@ Logistic Regression still has a higher ROC-AUC than the GCN under the temporal p
 
 ---
 
+## 🧩 Ablation Study
+
+To determine where the predictive signal originates, the project evaluates four configurations under both the random and temporal protocols:
+
+| Configuration | Description |
+| --- | --- |
+| Features only | Logistic Regression using transaction-level features |
+| Graph only | GCN using constant node features, forcing the model to rely on graph structure and message passing |
+| Features + GCN | Original two-layer GCN using transaction-level features and graph connectivity |
+| Features + neighborhood features | Logistic Regression using transaction features augmented with one-hop mean-neighbor features |
+
+The graph-only configuration keeps the GCN architecture unchanged but replaces all transaction features with a constant scalar for every node. This isolates the contribution of graph connectivity and message passing.
+
+The neighborhood-feature configuration provides a simpler alternative to learned message passing: each transaction receives the mean feature vector of its one-hop neighbors, concatenated with its original feature vector. No transaction labels are used to construct these features.
+
+All four configurations are evaluated using the same train/validation/test partitions within each protocol.
+
+### Random-Split Ablation Results
+
+| Configuration                     |   Accuracy |         F1 |    ROC-AUC |
+| ---------------------------------- | ---------: | ---------: | ---------: |
+| Features only                      |     0.9621 |     0.7946 |     0.9680 |
+| Graph only                         |     0.8219 |     0.0768 |     0.5938 |
+| Features + GCN                     |     0.8797 |     0.5900 |     0.9525 |
+| Features + neighborhood features   | **0.9688** | **0.8283** | **0.9758** |
+
+### Temporal-Split Ablation Results
+
+| Configuration                     |   Accuracy |         F1 |    ROC-AUC |
+| ---------------------------------- | ---------: | ---------: | ---------: |
+| Features only                      |     0.7101 |     0.2303 | **0.8308** |
+| Graph only                         |     0.7729 |     0.0790 |     0.5750 |
+| Features + GCN                     |     0.6124 |     0.1997 |     0.8111 |
+| Features + neighborhood features   | **0.9176** | **0.3150** |     0.8279 |
+
+### Random vs. temporal ablation summary
+
+| Configuration                     | Random ROC-AUC | Temporal ROC-AUC | Random F1 | Temporal F1 |
+| ---------------------------------- | --------------: | -----------------: | ---------: | ------------: |
+| Features only                      |          0.9680 |              0.8308 |     0.7946 |        0.2303 |
+| Graph only                         |          0.5938 |              0.5750 |     0.0768 |        0.0790 |
+| Features + GCN                     |          0.9525 |              0.8111 |     0.5900 |        0.1997 |
+| Features + neighborhood features   |          0.9758 |              0.8279 |     0.8283 |        0.3150 |
+
+### Interpretation
+
+Graph topology alone carries almost no predictive signal for this task: the graph-only GCN (constant node features, so predictions can only come from connectivity and message passing) performs close to chance in both protocols (ROC-AUC 0.59 random-split, 0.58 temporal-split). Removing the graph entirely and keeping only transaction features (Logistic Regression) reaches 0.97 / 0.83 ROC-AUC — dramatically higher.
+
+Augmenting the transaction features with a simple one-hop mean-neighbor feature and feeding them to Logistic Regression — no message passing, no learned graph model — matches or exceeds the GCN's performance in both the random split (ROC-AUC 0.976 vs 0.953, F1 0.828 vs 0.590) and the temporal split (ROC-AUC 0.828 vs 0.811, F1 0.315 vs 0.200).
+
+Taken together, this ablation indicates that in this configuration, almost all of the GCN's discriminative power comes from the transaction-level node features it has access to rather than from its message-passing mechanism, and that a much simpler explicit neighborhood-averaging feature captures at least as much of the locally available relational signal as the learned GCN does. This does not rule out that a different or better-tuned GNN architecture could do better — that question is left for future work — but the current results do not establish an advantage for graph-based message passing over the transaction-level and simple-neighborhood-aggregate baselines on this dataset.
+
+---
+
 ## 🧪 Evaluation Metrics
 
 The project reports:
@@ -358,6 +412,7 @@ Current limitations include:
 
 * temporal evaluation is performed at the dataset time-step level rather than exact transaction timestamps
 * benchmark features may contain aggregated neighborhood information, so this is not a full point-in-time production simulation
+* neighborhood-feature ablations are transductive within each graph snapshot because unlabeled node features from connected evaluation nodes may contribute to neighborhood aggregates
 * a relatively simple two-layer GCN
 * heuristic graph construction from the available edge list
 * no systematic hyperparameter search
