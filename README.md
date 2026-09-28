@@ -89,10 +89,11 @@ using stratified random splitting with `random_state=42`.
 
 ### Test Set
 
-| Model               |   Accuracy |   F1 Score |    ROC-AUC |
+| Model               |   Accuracy |         F1 |    ROC-AUC |
 | ------------------- | ---------: | ---------: | ---------: |
-| Logistic Regression | **0.9620** | **0.7942** | **0.9679** |
-| GCN                 |     0.8860 |     0.6011 |     0.9554 |
+| Logistic Regression | **0.9621** | **0.7946** | **0.9680** |
+| GCN                 |     0.8797 |     0.5900 |     0.9525 |
+
 
 ### Interpretation
 
@@ -111,16 +112,16 @@ The test-set confusion matrix for the GCN is:
 ```text
                  Predicted
                Licit  Illicit
-Actual Licit    7451     953
-Actual Illicit   109     800
+Actual Licit    7387     1017
+Actual Illicit   103     806
 ```
 
 The resulting GCN metrics are:
 
 ```text
-Illicit precision: 0.4564
-Illicit recall:    0.8801
-Illicit F1:        0.6011
+Illicit precision: 0.4421
+Illicit recall:    0.8867
+Illicit F1:        0.5900
 ```
 
 The model therefore identifies a large proportion of illicit transactions, but at the cost of a relatively high false-positive rate.
