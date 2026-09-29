@@ -8,6 +8,59 @@ The project compares a **Logistic Regression baseline** (with and without a simp
 
 ---
 
+## ⚡ Project Snapshot
+
+> **Research question:** Does graph structure actually improve illicit-transaction detection, and do the conclusions survive architecture changes and chronological evaluation?
+
+This project evaluates **Logistic Regression, GCN, GraphSAGE, and GAT** on the **Elliptic Bitcoin Transaction Dataset**, with controlled ablations, 10 seed-matched runs, paired statistical testing, calibration/error analysis, and rolling-origin temporal robustness.
+
+### Results at a glance
+
+**Mean ROC-AUC ± std across 10 runs**
+
+| Configuration | Random split | Temporal split |
+| --- | ---: | ---: |
+| Features only — Logistic Regression | **0.9686 ± 0.0018** | **0.8308 ± 0.0000** |
+| Features + neighborhood — Logistic Regression | **0.9760 ± 0.0011** | **0.8323 ± 0.0000** |
+| Features + GCN | 0.9549 ± 0.0029 | 0.7979 ± 0.0111 |
+| Features + GraphSAGE | **0.9765 ± 0.0024** | 0.8301 ± 0.0033 |
+| Features + GAT | 0.9404 ± 0.0067 | 0.8097 ± 0.0252 |
+
+### What the experiments found
+
+**1. Architecture matters.**  
+GCN and GAT show statistically significant underperformance against the non-graph baselines in both protocols, while GraphSAGE does not reproduce that pattern.
+
+**2. Temporal evaluation changes the picture.**  
+Performance drops substantially when moving from random to chronological evaluation, and the effect remains across three chronological cutoffs.
+
+**3. Topology alone is weak in this setup.**  
+The graph-only ablation stays near chance, while a simple one-hop neighborhood feature gives Logistic Regression a strong relational baseline without learned message passing.
+
+**4. Confidence degrades with time.**  
+Brier score and Expected Calibration Error become substantially worse under temporal evaluation, showing that later-period predictions are not only less accurate but also less well calibrated.
+
+### Experimental pipeline
+
+```mermaid
+flowchart LR
+    A[Elliptic Dataset] --> B[Feature Baseline]
+    A --> C[Graph Construction]
+    C --> D[GCN / GraphSAGE / GAT]
+    B --> E[Ablation Study]
+    D --> E
+    E --> F[10-Seed Robustness]
+    F --> G[Paired Statistical Tests]
+    G --> H[Error & Calibration Analysis]
+    H --> I[Rolling-Origin Temporal Validation]
+```
+
+**Reproducibility:** 37 tests passing, GitHub Actions CI, pinned dependencies, fixed seeds, fixed 0.5 classification threshold, and a top-to-bottom notebook run with zero errors.
+
+[📓 Open the experiment notebook](./frauddetection.ipynb) · [🧪 View tests](./tests) · [⚙️ View source](./src)
+
+---
+
 ## 🔍 Problem
 
 Cryptocurrency transactions can be represented as a graph:
