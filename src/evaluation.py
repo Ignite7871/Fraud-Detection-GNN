@@ -129,6 +129,66 @@ def classification_details(
     return cm, report
 
 
+def predict_probabilities(
+    model,
+    data,
+    split: str = "test",
+):
+    """
+    Return (y_true, y_pred, y_prob) NumPy arrays for a node-classification
+    model on a graph split.
+
+    Reuses the same forward pass / argmax / softmax logic as evaluate()
+    and classification_details(), but returns the raw arrays instead of
+    aggregate metrics, so downstream error-analysis code (src/error_analysis.py)
+    can work identically for GNN models and non-graph classifiers.
+    """
+
+    model.eval()
+
+    with torch.no_grad():
+        out = model(
+            data.x,
+            data.edge_index,
+        )
+
+        if split == "val":
+            mask = data.val_mask
+        elif split == "test":
+            mask = data.test_mask
+        elif split == "train":
+            mask = data.train_mask
+        else:
+            raise ValueError(
+                f"Unknown split: {split}"
+            )
+
+        logits = out[mask]
+
+        y_pred = (
+            logits.argmax(dim=1)
+            .cpu()
+            .numpy()
+        )
+
+        y_prob = (
+            torch.softmax(
+                logits,
+                dim=1,
+            )[:, 1]
+            .cpu()
+            .numpy()
+        )
+
+        y_true = (
+            data.y[mask]
+            .cpu()
+            .numpy()
+        )
+
+    return y_true, y_pred, y_prob
+
+
 def fraudulent_neighbor_ratio(
     data,
     test_idx,
